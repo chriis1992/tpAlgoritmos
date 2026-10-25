@@ -35,10 +35,18 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="lista.h" />
+		<Unit filename="listaDoble.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="listaDoble.h" />
 		<Unit filename="lru_cache.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="lru_cache.h" />
+		<Unit filename="lru_cache_lista_doble.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lru_cache_lista_doble.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
