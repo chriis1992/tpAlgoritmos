@@ -38,15 +38,15 @@ int poner_primero_lista_doble(tListaDoble *lista, const void *dato, unsigned tam
     return 1;
 }
 
-tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *clave, tCmpListaDoble comparar)
+tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *clave, Cmp compara)
 {
     tNodoDoble *actual;
 
-    if(!clave || !comparar)
+    if(!clave || !compara)
         return NULL;
 
     for(actual = lista->primero; actual; actual = actual->sig)
-        if(comparar(clave, actual->info) == 0)
+        if(compara(clave, actual->info) == 0)
             return actual;
 
     return NULL;

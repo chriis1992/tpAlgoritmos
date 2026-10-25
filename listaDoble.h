@@ -7,7 +7,7 @@
 #define minimo(a,b) ((a) <= (b) ? (a) : (b))
 #define maximo(a,b) ((a) > (b) ? (a) : (b))
 
-typedef int (*tCmpListaDoble)(const void *, const void *);
+typedef int (*Cmp)(const void *, const void *);
 
 typedef struct sNodoDoble
 {
@@ -25,7 +25,7 @@ typedef struct
 
 void crear_lista_doble(tListaDoble *lista);
 int poner_primero_lista_doble(tListaDoble *lista, const void *dato, unsigned tam);
-tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *clave, tCmpListaDoble comparar);
+tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *clave, Cmp compara);
 void mover_primero_lista_doble(tListaDoble *lista, tNodoDoble *nodo);
 int reemplazar_nodo_lista_doble(tNodoDoble *nodo, const void *dato, unsigned tam);
 int sacar_nodo_lista_doble(tListaDoble *lista, tNodoDoble *nodo, void *destino, unsigned tamDestino);
