@@ -1,4 +1,4 @@
-#include "Lista.h"
+#include "lista.h"
 
 void crear_lista(tLista * pl)
 {
