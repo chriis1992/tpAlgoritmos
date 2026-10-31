@@ -6,9 +6,9 @@
 
 typedef struct
 {
-    tLista lista_elementos;
+    tLista listaElementos;
     unsigned capacidad;
-    unsigned cantidad_actual;
+    unsigned cantidadActual;
     int (*cmp)(const void *, const void *);
 } t_lru_cache;
 
