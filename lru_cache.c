@@ -33,6 +33,16 @@ int agregar_lrucache(t_lru_cache *cache, const void *dato, unsigned tam)
     return 1;
 }
 
+int borrar_lrucache(t_lru_cache *cache, void *datoBusqueda, unsigned tam)
+{
+    if(sacar_elem_lista(&cache->listaElementos, datoBusqueda, tam, cache->cmp))
+    {
+        cache->cantidadActual--;
+        return 1;
+    }
+    return 0;
+}
+
 void vaciar_lrucache(t_lru_cache *cache)
 {
     vaciar_lista(&cache->listaElementos);
