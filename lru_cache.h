@@ -1,25 +1,21 @@
 #ifndef LRU_CACHE_H_INCLUDED
 #define LRU_CACHE_H_INCLUDED
 
+#include <stdlib.h>
 #include "lista.h"
-
-typedef int (*cmp)(const void*, const void*);
 
 typedef struct
 {
-    tLista lista;
-    unsigned capacidadMax;
-    unsigned cantidadActual;
+    tLista lista_elementos;
+    unsigned capacidad;
+    unsigned cantidad_actual;
+    int (*cmp)(const void *, const void *);
 } t_lru_cache;
 
-void crear_lrucache(t_lru_cache *cache, unsigned capacidad);
-
-int agregar_lrucache(t_lru_cache *cache, const void *dato, unsigned tam, cmp cmp);
-
-int obtener_lrucache(t_lru_cache *cache, void *datoBusqueda, unsigned tam, cmp cmp);
-
-int borrar_lrucache(t_lru_cache *cache, void *datoBusqueda, unsigned tam, cmp cmp);
-
+void crear_lrucache(t_lru_cache *cache, unsigned capacidad, int (*cmp)(const void *, const void *));
+int obtener_lrucache(t_lru_cache *cache, void *dato, unsigned tam);
+int agregar_lrucache(t_lru_cache *cache, const void *dato, unsigned tam);
 void vaciar_lrucache(t_lru_cache *cache);
 
 #endif // LRU_CACHE_H_INCLUDED
+
