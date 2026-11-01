@@ -2,14 +2,15 @@
 
 void crear_arbol_indice(tArbolIndice *arbol)
 {
-    *arbol = NULL;
+    if(arbol)
+        *arbol = NULL;
 }
 
 tNodoDoble *buscar_arbol_indice(const tArbolIndice *arbol, const void *dato, Cmp compara)
 {
     int resultado;
 
-    if(!dato || !compara)
+    if(!arbol || !dato || !compara)
         return NULL;
 
     while(*arbol)
@@ -27,7 +28,7 @@ int insertar_arbol_indice(tArbolIndice *arbol, tNodoDoble *nodoLista, Cmp compar
     tNodoIndice *nuevo;
     int resultado;
 
-    if(!nodoLista || !compara)
+    if(!arbol || !nodoLista || !compara)
         return 0;
 
     while(*arbol)
@@ -53,7 +54,7 @@ int eliminar_arbol_indice(tArbolIndice *arbol, const void *clave, Cmp compara)
     tNodoIndice *eliminado, **reemplazo, *sucesor;
     int resultado;
 
-    if(!clave || !compara)
+    if(!arbol || !clave || !compara)
         return 0;
 
     while(*arbol)
@@ -92,7 +93,7 @@ unsigned altura_arbol_indice(const tArbolIndice *arbol)
 {
     unsigned hi, hd;
 
-    if(!*arbol)
+    if(!arbol || !*arbol)
         return 0;
     hi = altura_arbol_indice(&(*arbol)->izq);
     hd = altura_arbol_indice(&(*arbol)->der);
@@ -101,7 +102,7 @@ unsigned altura_arbol_indice(const tArbolIndice *arbol)
 
 void vaciar_arbol_indice(tArbolIndice *arbol)
 {
-    if(!*arbol)
+    if(!arbol || !*arbol)
         return;
 
     vaciar_arbol_indice(&(*arbol)->izq);

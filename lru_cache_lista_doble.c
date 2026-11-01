@@ -4,6 +4,9 @@
 
 void crear_lrucache_lista_doble(t_lru_cache_lista_doble *cache, unsigned capacidad, Cmp comparar)
 {
+    if(!cache)
+        return;
+
     crear_lista_doble(&cache->lista);
     crear_arbol_indice(&cache->indice);
     cache->capacidadMax = capacidad;
@@ -15,7 +18,7 @@ int agregar_lrucache_lista_doble(t_lru_cache_lista_doble *cache, const void *dat
 {
     tNodoDoble *existente;
 
-    if(cache->capacidadMax == 0 || !dato || tam == 0 || !cache->comparar)
+    if(!cache || cache->capacidadMax == 0 || !dato || tam == 0 || !cache->comparar)
         return 0;
 
     existente = buscar_arbol_indice(&cache->indice, dato, cache->comparar);
@@ -53,7 +56,7 @@ int obtener_lrucache_lista_doble(t_lru_cache_lista_doble *cache, void *datoBusqu
 {
     tNodoDoble *encontrado;
 
-    if(!datoBusqueda || !cache->comparar)
+    if(!cache || !datoBusqueda || !cache->comparar)
         return 0;
 
     encontrado = buscar_arbol_indice(&cache->indice, datoBusqueda, cache->comparar);
@@ -70,7 +73,7 @@ int borrar_lrucache_lista_doble(t_lru_cache_lista_doble *cache, void *datoBusque
 {
     tNodoDoble *encontrado;
 
-    if(!datoBusqueda || !cache->comparar)
+    if(!cache || !datoBusqueda || !cache->comparar)
         return 0;
 
     encontrado = buscar_arbol_indice(&cache->indice, datoBusqueda, cache->comparar);
@@ -85,6 +88,9 @@ int borrar_lrucache_lista_doble(t_lru_cache_lista_doble *cache, void *datoBusque
 
 void vaciar_lrucache_lista_doble(t_lru_cache_lista_doble *cache)
 {
+    if(!cache)
+        return;
+
     vaciar_arbol_indice(&cache->indice);
     vaciar_lista_doble(&cache->lista);
     cache->cantidadActual = 0;
@@ -92,5 +98,8 @@ void vaciar_lrucache_lista_doble(t_lru_cache_lista_doble *cache)
 
 unsigned altura_lrucache_lista_doble(const t_lru_cache_lista_doble *cache)
 {
+    if(!cache)
+        return 0;
+
     return altura_arbol_indice(&cache->indice);
 }
