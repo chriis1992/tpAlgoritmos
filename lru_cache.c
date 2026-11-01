@@ -1,17 +1,17 @@
 #include "lru_cache.h"
 
-void crear_lrucache(t_lru_cache *cache, unsigned capacidad, int (*cmp)(const void *, const void *))
+void crear_lrucache(t_lru_cache *cache, unsigned capacidad, cmp comparar)
 {
     crear_lista(&cache->listaElementos);
     cache->capacidad = capacidad;
     cache->cantidadActual = 0;
 
-    cache->cmp = cmp;
+    cache->comparar = comparar;
 }
 
 int obtener_lrucache(t_lru_cache *cache, void *dato, unsigned tam)
 {
-    if(sacar_elem_lista(&cache->listaElementos, dato, tam, cache->cmp))
+    if(sacar_elem_lista(&cache->listaElementos, dato, tam, cache->comparar))
     {
         poner_primero_lista(&cache->listaElementos, dato, tam);
         return 1;
@@ -35,7 +35,7 @@ int agregar_lrucache(t_lru_cache *cache, const void *dato, unsigned tam)
 
 int borrar_lrucache(t_lru_cache *cache, void *datoBusqueda, unsigned tam)
 {
-    if(sacar_elem_lista(&cache->listaElementos, datoBusqueda, tam, cache->cmp))
+    if(sacar_elem_lista(&cache->listaElementos, datoBusqueda, tam, cache->comparar))
     {
         cache->cantidadActual--;
         return 1;
