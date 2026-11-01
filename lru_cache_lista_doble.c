@@ -36,14 +36,15 @@ int agregar_lrucache_lista_doble(t_lru_cache_lista_doble *cache, const void *dat
         return 0;
     }
 
-    cache->cantidadActual++;
-    if(cache->cantidadActual > cache->capacidadMax)
+    if(cache->cantidadActual >= cache->capacidadMax)
     {
         /* saco el nodo primero del indice y despues se saca de la lista */
         eliminar_arbol_indice(&cache->indice, cache->lista.ultimo->info, cache->comparar);
         sacar_ultimo_lista_doble(&cache->lista, NULL, 0);
-        cache->cantidadActual--;
+        cache->cantidadActual = cache->capacidadMax;
     }
+    else
+        cache->cantidadActual++;
 
     return 1;
 }

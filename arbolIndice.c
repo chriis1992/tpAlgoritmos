@@ -5,16 +5,16 @@ void crear_arbol_indice(tArbolIndice *arbol)
     *arbol = NULL;
 }
 
-tNodoDoble *buscar_arbol_indice(const tArbolIndice *arbol, const void *clave, Cmp compara)
+tNodoDoble *buscar_arbol_indice(const tArbolIndice *arbol, const void *dato, Cmp compara)
 {
     int resultado;
 
-    if(!clave || !compara)
+    if(!dato || !compara)
         return NULL;
 
     while(*arbol)
     {
-        resultado = compara(clave, (*arbol)->nodoLista->info);
+        resultado = compara(dato, (*arbol)->nodoLista->info);
         if(resultado == 0)
             return (*arbol)->nodoLista;
         arbol = resultado < 0 ? &(*arbol)->izq : &(*arbol)->der;

@@ -25,7 +25,7 @@ typedef struct
 
 void crear_lista_doble(tListaDoble *lista);
 int poner_primero_lista_doble(tListaDoble *lista, const void *dato, unsigned tam);
-tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *clave, Cmp compara);
+tNodoDoble *buscar_nodo_lista_doble(const tListaDoble *lista, const void *dato, Cmp compara);
 void mover_primero_lista_doble(tListaDoble *lista, tNodoDoble *nodo);
 int reemplazar_nodo_lista_doble(tNodoDoble *nodo, const void *dato, unsigned tam);
 int sacar_nodo_lista_doble(tListaDoble *lista, tNodoDoble *nodo, void *destino, unsigned tamDestino);
