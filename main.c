@@ -16,17 +16,18 @@ void imprimir_ayuda(const char *prog)
     printf("  %s 6 [semilla]                          -> Ejecutar bateria completa de pruebas para el informe\n\n", prog);
 }
 
-void ejecutar_bateria_informe(unsigned semilla)
+int ejecutar_bateria_informe(unsigned semilla)
 {
     const unsigned capacidades[] = { 10, 50, 100, 200, 500, 1000, 2000 };
     const size_t cantCapacidades = sizeof(capacidades) / sizeof(capacidades[0]);
     tMetricas m;
 
     printf("\n=== GENERANDO ARCHIVOS PARA LA BATERIA DE PRUEBAS (Semilla: %u) ===\n", semilla);
-    generar_archivo_posteos(ARCHIVO_POSTEOS, CANT_POSTEOS);
-    generar_lote_concentrado(ARCHIVO_LOTE_CONCENTRADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
-    generar_lote_disperso(ARCHIVO_LOTE_DISPERSO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
-    generar_lote_ordenado(ARCHIVO_LOTE_ORDENADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
+    if(!generar_archivo_posteos(ARCHIVO_POSTEOS, CANT_POSTEOS) ||
+       !generar_lote_concentrado(ARCHIVO_LOTE_CONCENTRADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla) ||
+       !generar_lote_disperso(ARCHIVO_LOTE_DISPERSO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla) ||
+       !generar_lote_ordenado(ARCHIVO_LOTE_ORDENADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla))
+        return 0;
 
     const char *lotes[] = { ARCHIVO_LOTE_CONCENTRADO, ARCHIVO_LOTE_DISPERSO, ARCHIVO_LOTE_ORDENADO };
     const char *nombresLotes[] = { "Concentrado", "Disperso  ", "Ordenado   " };
@@ -39,7 +40,8 @@ void ejecutar_bateria_informe(unsigned semilla)
     for(int l = 0; l < 3; l++)
     {
         /* Caso Sin Cache */
-        procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_SIN_CACHE, 0, &m);
+        if(!procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_SIN_CACHE, 0, &m))
+            return 0;
         printf(" %-12s | %-16s | %-5s | %-12.4f | %-12.6f | %-14s | %-8s\n",
                nombresLotes[l], "Sin Cache", "-", m.tiempoTotalSeg, m.tiempoPromPosteoMs, "-", "-");
 
@@ -49,7 +51,8 @@ void ejecutar_bateria_informe(unsigned semilla)
             unsigned cap = capacidades[c];
 
             /* Parte 1 */
-            procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_CACHE_PARTE_1, cap, &m);
+            if(!procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_CACHE_PARTE_1, cap, &m))
+                return 0;
             double pctP1 = m.totalConsultas > 0 ? ((double)m.aciertos * 100.0) / m.totalConsultas : 0.0;
             char hitsStrP1[32];
             snprintf(hitsStrP1, sizeof(hitsStrP1), "%u (%.1f%%)", m.aciertos, pctP1);
@@ -58,7 +61,8 @@ void ejecutar_bateria_informe(unsigned semilla)
                    nombresLotes[l], "Parte 1 (Lista)", cap, m.tiempoTotalSeg, m.tiempoPromPosteoMs, hitsStrP1, "-");
 
             /* Parte 2 */
-            procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_CACHE_PARTE_2, cap, &m);
+            if(!procesar_lote_usuarios(lotes[l], ARCHIVO_POSTEOS, MODO_CACHE_PARTE_2, cap, &m))
+                return 0;
             double pctP2 = m.totalConsultas > 0 ? ((double)m.aciertos * 100.0) / m.totalConsultas : 0.0;
             char hitsStrP2[32];
             snprintf(hitsStrP2, sizeof(hitsStrP2), "%u (%.1f%%)", m.aciertos, pctP2);
@@ -71,6 +75,7 @@ void ejecutar_bateria_informe(unsigned semilla)
         printf("---------------------------------------------------------------------------------------------------------\n");
     }
     printf("=========================================================================================================\n\n");
+    return 1;
 }
 
 void menu_interactivo(void)
@@ -159,6 +164,11 @@ void menu_interactivo(void)
                 printf(" Opcion: ");
                 if(scanf("%d", &modo) == 1)
                 {
+                    if(modo < MODO_SIN_CACHE || modo > MODO_CACHE_PARTE_2)
+                    {
+                        printf("Modo invalido: elija 0, 1 o 2.\n");
+                        break;
+                    }
                     if(modo != 0)
                     {
                         printf("Ingrese capacidad de la cache: ");
@@ -166,6 +176,8 @@ void menu_interactivo(void)
                     }
                     if(procesar_lote_usuarios(rutaLote, ARCHIVO_POSTEOS, (tModoCache)modo, cap, &m))
                         mostrar_metricas(&m, rutaLote, (tModoCache)modo, cap);
+                    else
+                        fprintf(stderr, "No se pudo procesar el lote. Revise los archivos y la capacidad.\n");
                 }
                 break;
             }
@@ -173,7 +185,8 @@ void menu_interactivo(void)
             case 6:
                 printf("Ingrese semilla para reproducir los lotes (ej. 12345): ");
                 if(scanf("%u", &semilla) == 1)
-                    ejecutar_bateria_informe(semilla);
+                    if(!ejecutar_bateria_informe(semilla))
+                        fprintf(stderr, "No se pudo completar la bateria de pruebas.\n");
                 break;
 
             case 0:
@@ -197,14 +210,16 @@ int main(int argc, char *argv[])
         switch(comando)
         {
             case 1:
-                generar_archivo_posteos(ARCHIVO_POSTEOS, CANT_POSTEOS);
+                if(!generar_archivo_posteos(ARCHIVO_POSTEOS, CANT_POSTEOS))
+                    return 1;
                 printf("Archivo de posteos generado: %s\n", ARCHIVO_POSTEOS);
                 break;
 
             case 2:
             {
                 unsigned semilla = (argc > 2) ? (unsigned)atoi(argv[2]) : 12345;
-                generar_lote_concentrado(ARCHIVO_LOTE_CONCENTRADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
+                if(!generar_lote_concentrado(ARCHIVO_LOTE_CONCENTRADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla))
+                    return 1;
                 printf("Lote concentrado generado: %s (Semilla: %u)\n", ARCHIVO_LOTE_CONCENTRADO, semilla);
                 break;
             }
@@ -212,7 +227,8 @@ int main(int argc, char *argv[])
             case 3:
             {
                 unsigned semilla = (argc > 2) ? (unsigned)atoi(argv[2]) : 12345;
-                generar_lote_disperso(ARCHIVO_LOTE_DISPERSO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
+                if(!generar_lote_disperso(ARCHIVO_LOTE_DISPERSO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla))
+                    return 1;
                 printf("Lote disperso generado: %s (Semilla: %u)\n", ARCHIVO_LOTE_DISPERSO, semilla);
                 break;
             }
@@ -220,7 +236,8 @@ int main(int argc, char *argv[])
             case 4:
             {
                 unsigned semilla = (argc > 2) ? (unsigned)atoi(argv[2]) : 12345;
-                generar_lote_ordenado(ARCHIVO_LOTE_ORDENADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla);
+                if(!generar_lote_ordenado(ARCHIVO_LOTE_ORDENADO, CANT_USUARIOS_DEFAULT, CANT_POSTEOS, semilla))
+                    return 1;
                 printf("Lote ordenado generado: %s (Semilla: %u)\n", ARCHIVO_LOTE_ORDENADO, semilla);
                 break;
             }
@@ -233,20 +250,34 @@ int main(int argc, char *argv[])
                     return 1;
                 }
                 const char *rutaLote = argv[2];
+                if(strcmp(argv[3], "0") != 0 &&
+                   strcmp(argv[3], "1") != 0 &&
+                   strcmp(argv[3], "2") != 0)
+                {
+                    fprintf(stderr, "Modo invalido: use 0, 1 o 2.\n");
+                    return 1;
+                }
                 tModoCache modo = (tModoCache)atoi(argv[3]);
                 unsigned cap = (argc > 4) ? (unsigned)atoi(argv[4]) : 50;
 
                 if(procesar_lote_usuarios(rutaLote, ARCHIVO_POSTEOS, modo, cap, &m))
                     mostrar_metricas(&m, rutaLote, modo, cap);
                 else
-                    fprintf(stderr, "Error procesando lote \"%s\". Verifique que existan los archivos.\n", rutaLote);
+                {
+                    fprintf(stderr, "Error procesando lote \"%s\". Revise los archivos y la capacidad.\n", rutaLote);
+                    return 1;
+                }
                 break;
             }
 
             case 6:
             {
                 unsigned semilla = (argc > 2) ? (unsigned)atoi(argv[2]) : 12345;
-                ejecutar_bateria_informe(semilla);
+                if(!ejecutar_bateria_informe(semilla))
+                {
+                    fprintf(stderr, "No se pudo completar la bateria de pruebas.\n");
+                    return 1;
+                }
                 break;
             }
 

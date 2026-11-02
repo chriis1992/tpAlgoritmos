@@ -10,12 +10,21 @@ int contiene_post(const int feed[], size_t usados, int id);
 void mezclar(int v[], size_t n);
 size_t agregar_posts_bloque(int feed[], size_t *usados, size_t inicio, size_t cantidad, size_t k);
 void agregar_posts_aleatorios(int feed[], size_t *usados, unsigned cantPosteosTotal, size_t cantidadRequerida);
+static unsigned aleatorio_hasta(unsigned limite);
 
 /*
  =========================================================================
  Implementacion de funciones auxiliares
  =========================================================================
 */
+
+/* Combino dos RAND_MAX ya que capaz que llega a 32767 nomás. */
+static unsigned aleatorio_hasta(unsigned limite)
+{
+    unsigned long long base = (unsigned long long)RAND_MAX + 1;
+    unsigned long long valor = (unsigned long long)rand() * base + (unsigned long long)rand();
+    return (unsigned)(valor % limite);
+}
 
 int contiene_post(const int feed[], size_t usados, int id)
 {
@@ -31,7 +40,7 @@ void mezclar(int v[], size_t n)
 {
     for(size_t i = n; i > 1; i--)
     {
-        size_t j = (size_t)rand() % i;
+        size_t j = aleatorio_hasta((unsigned)i);
         int aux = v[i - 1];
         v[i - 1] = v[j];
         v[j] = aux;
@@ -78,7 +87,7 @@ void agregar_posts_aleatorios(int feed[], size_t *usados, unsigned cantPosteosTo
 
     while(*usados < limite)
     {
-        int idAleatorio = rand() % (int)cantPosteosTotal;
+        int idAleatorio = (int)aleatorio_hasta(cantPosteosTotal);
         if(!contiene_post(feed, *usados, idAleatorio))
             feed[(*usados)++] = idAleatorio;
     }
@@ -157,7 +166,9 @@ int generar_archivo_posteos(const char *rutaPosteos, unsigned cantPosteos)
         }
     }
 
-    fclose(pf);
+    if(fclose(pf) != 0)
+        return 0;
+
     return 1;
 }
 
@@ -201,7 +212,7 @@ int generar_lote_concentrado(const char *rutaLote, unsigned cantUsuarios, unsign
     if(tamBloque > cantPosteosTotal)
         tamBloque = cantPosteosTotal;
 
-    unsigned iniBloque = (cantPosteosTotal > tamBloque) ? (unsigned)rand() % (cantPosteosTotal - tamBloque + 1) : 0;
+    unsigned iniBloque = (cantPosteosTotal > tamBloque) ? aleatorio_hasta(cantPosteosTotal - tamBloque + 1) : 0;
     size_t cantComunes = TAM_FEED / 3;
     size_t cantPopulares = (TAM_FEED - cantComunes) / 2;
 
@@ -216,7 +227,11 @@ int generar_lote_concentrado(const char *rutaLote, unsigned cantUsuarios, unsign
             user.feed[usados++] = (int)(iniBloque + c);
 
         // 2/3. Posteos del bloque de populares
-        agregar_posts_bloque(user.feed, &usados, iniBloque, tamBloque, cantPopulares);
+        if(agregar_posts_bloque(user.feed, &usados, iniBloque, tamBloque, cantPopulares) != cantPopulares)
+        {
+            fclose(pf);
+            return 0;
+        }
 
         // 3/3. Posteos aleatorios del universo total
         agregar_posts_aleatorios(user.feed, &usados, cantPosteosTotal, TAM_FEED);
@@ -234,7 +249,9 @@ int generar_lote_concentrado(const char *rutaLote, unsigned cantUsuarios, unsign
         }
     }
 
-    fclose(pf);
+    if(fclose(pf) != 0)
+        return 0;
+
     return 1;
 }
 
@@ -276,7 +293,9 @@ int generar_lote_disperso(const char *rutaLote, unsigned cantUsuarios, unsigned 
         }
     }
 
-    fclose(pf);
+    if(fclose(pf) != 0)
+        return 0;
+
     return 1;
 }
 
@@ -304,9 +323,9 @@ int generar_lote_ordenado(const char *rutaLote, unsigned cantUsuarios, unsigned 
     unsigned idActual;
 
     if(cantPosteosTotal > margenSalto)
-        idActual = (unsigned)rand() % (cantPosteosTotal - margenSalto);
+        idActual = aleatorio_hasta(cantPosteosTotal - margenSalto);
     else if(cantPosteosTotal > totalConsultas)
-        idActual = (unsigned)rand() % (cantPosteosTotal - totalConsultas);
+        idActual = aleatorio_hasta(cantPosteosTotal - totalConsultas);
     else
         idActual = 0;
 
@@ -321,7 +340,7 @@ int generar_lote_ordenado(const char *rutaLote, unsigned cantUsuarios, unsigned 
 
             // Avance estrictamente creciente: salto de 1 o 2 unidades
             if(idActual + 2 < cantPosteosTotal)
-                idActual += 1 + ((unsigned)rand() % 2);
+                idActual += 1 + aleatorio_hasta(2);
             else
                 idActual = (idActual + 1) % cantPosteosTotal;
         }
@@ -333,7 +352,9 @@ int generar_lote_ordenado(const char *rutaLote, unsigned cantUsuarios, unsigned 
         }
     }
 
-    fclose(pf);
+    if(fclose(pf) != 0)
+        return 0;
+
     return 1;
 }
 
@@ -351,8 +372,12 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
     t_lru_cache cacheP1;
     t_lru_cache_lista_doble cacheP2;
     clock_t tInicio, tFin;
+    int correcto = 1;
 
     if(!rutaLote || !rutaPosteos || !metricas)
+        return 0;
+
+    if(modo != MODO_SIN_CACHE && modo != MODO_CACHE_PARTE_1 && modo != MODO_CACHE_PARTE_2)
         return 0;
 
     if(modo != MODO_SIN_CACHE && capacidadCache == 0)
@@ -376,11 +401,11 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
 
     tInicio = clock();
 
-    while(fread(&usuario, sizeof(tUsuario), 1, pfLote) == 1)
+    while(correcto && fread(&usuario, sizeof(tUsuario), 1, pfLote) == 1)
     {
         metricas->cantUsuarios++;
 
-        for(int j = 0; j < TAM_FEED; j++)
+        for(int j = 0; j < TAM_FEED && correcto; j++)
         {
             int idPost = usuario.feed[j];
             tPosteo post;
@@ -389,7 +414,8 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
 
             if(modo == MODO_SIN_CACHE)
             {
-                leer_posteo_disco(pfPosteos, idPost, &post, metricas);
+                if(!leer_posteo_disco(pfPosteos, idPost, &post, metricas))
+                    correcto = 0;
             }
             else if(modo == MODO_CACHE_PARTE_1)
             {
@@ -400,8 +426,9 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
                 else
                 {
                     metricas->fallos++;
-                    if(leer_posteo_disco(pfPosteos, idPost, &post, metricas))
-                        agregar_lrucache(&cacheP1, &post, sizeof(tPosteo));
+                    if(!leer_posteo_disco(pfPosteos, idPost, &post, metricas) ||
+                       !agregar_lrucache(&cacheP1, &post, sizeof(tPosteo)))
+                        correcto = 0;
                 }
             }
             else if(modo == MODO_CACHE_PARTE_2)
@@ -413,8 +440,9 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
                 else
                 {
                     metricas->fallos++;
-                    if(leer_posteo_disco(pfPosteos, idPost, &post, metricas))
-                        agregar_lrucache_lista_doble(&cacheP2, &post, sizeof(tPosteo));
+                    if(!leer_posteo_disco(pfPosteos, idPost, &post, metricas) ||
+                       !agregar_lrucache_lista_doble(&cacheP2, &post, sizeof(tPosteo)))
+                        correcto = 0;
                 }
             }
         }
@@ -422,17 +450,19 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
 
     tFin = clock();
 
-    metricas->tiempoTotalSeg = (double)(tFin - tInicio) / CLOCKS_PER_SEC;
+    if(ferror(pfLote) || tInicio == (clock_t)-1 || tFin == (clock_t)-1)
+        correcto = 0;
 
-    if(metricas->cantUsuarios > 0)
-        metricas->tiempoPromUsuarioMs = (metricas->tiempoTotalSeg * 1000.0) / metricas->cantUsuarios;
-    else
-        metricas->tiempoPromUsuarioMs = 0.0;
+    if(correcto)
+    {
+        metricas->tiempoTotalSeg = (double)(tFin - tInicio) / CLOCKS_PER_SEC;
 
-    if(metricas->totalConsultas > 0)
-        metricas->tiempoPromPosteoMs = (metricas->tiempoTotalSeg * 1000.0) / metricas->totalConsultas;
-    else
-        metricas->tiempoPromPosteoMs = 0.0;
+        if(metricas->cantUsuarios > 0)
+            metricas->tiempoPromUsuarioMs = (metricas->tiempoTotalSeg * 1000.0) / metricas->cantUsuarios;
+
+        if(metricas->totalConsultas > 0)
+            metricas->tiempoPromPosteoMs = (metricas->tiempoTotalSeg * 1000.0) / metricas->totalConsultas;
+    }
 
     if(modo == MODO_CACHE_PARTE_1)
     {
@@ -440,14 +470,15 @@ int procesar_lote_usuarios(const char *rutaLote, const char *rutaPosteos, tModoC
     }
     else if(modo == MODO_CACHE_PARTE_2)
     {
-        metricas->alturaArbol = altura_lrucache_lista_doble(&cacheP2);
+        if(correcto)
+            metricas->alturaArbol = altura_lrucache_lista_doble(&cacheP2);
         vaciar_lrucache_lista_doble(&cacheP2);
     }
 
     fclose(pfLote);
     fclose(pfPosteos);
 
-    return 1;
+    return correcto;
 }
 
 void mostrar_metricas(const tMetricas *metricas, const char *nombreLote, tModoCache modo, unsigned capacidad)
